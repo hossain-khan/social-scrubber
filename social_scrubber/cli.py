@@ -1,46 +1,4 @@
-
-class SocialScrubber:
-    """Main Social Scrubber application."""
-
-    def __init__(self):
-        """Initialize the Social Scrubber."""
-        self.config = Config.from_env()
-        setup_logging(self.config.log_level)
-
-        # Initialize platforms
-        self.platforms: Dict[str, BasePlatform] = {
-            "bluesky": BlueskyPlatform(self.config.bluesky),
-            "mastodon": MastodonPlatform(self.config.mastodon),
-            "twitter": TwitterPlatform(self.config.twitter),
-        }
-
-    async def archive_posts_from_platform(
-        self, platform_name: str, posts: List
-    ) -> List:
-        """Archive posts from a specific platform without deleting them."""
-        platform = self.platforms[platform_name]
-        if not posts:
-            return []
-        # Ensure archive directory exists
-        if not ensure_archive_directory(self.config.scrub.archive_path):
-            console.print("❌ Failed to create archive directory. Aborting archive.")
-            return []
-        results = []
-        for post in posts:
-            archive_file = await platform._archive_post(post, self.config.scrub.archive_path)
-            if archive_file:
-                results.append({
-                    "post_id": post.id,
-                    "archived": True,
-                    "archive_path": archive_file,
-                })
-            else:
-                results.append({
-                    "post_id": post.id,
-                    "archived": False,
-                    "archive_path": None,
-                })
-        return results
+"""Main CLI application for Social Scrubber."""
 
 import asyncio
 from datetime import datetime
@@ -206,6 +164,40 @@ class SocialScrubber:
             archive_path=self.config.scrub.archive_path,
         )
 
+        return results
+
+    async def archive_posts_from_platform(
+        self, platform_name: str, posts: List
+    ) -> List:
+        """Archive posts from a specific platform without deleting them."""
+        platform = self.platforms[platform_name]
+        if not posts:
+            return []
+        # Ensure archive directory exists
+        if not ensure_archive_directory(self.config.scrub.archive_path):
+            console.print("❌ Failed to create archive directory. Aborting archive.")
+            return []
+        results = []
+        for post in posts:
+            archive_file = await platform._archive_post(
+                post, self.config.scrub.archive_path
+            )
+            if archive_file:
+                results.append(
+                    {
+                        "post_id": post.id,
+                        "archived": True,
+                        "archive_path": archive_file,
+                    }
+                )
+            else:
+                results.append(
+                    {
+                        "post_id": post.id,
+                        "archived": False,
+                        "archive_path": None,
+                    }
+                )
         return results
 
     def show_config(self):
@@ -441,113 +433,7 @@ class SocialScrubber:
 
 # CLI Command Group
 
-# Place archive command after cli group definition
 
-@cli.command()
-@click.option(
-    "--max-posts",
-    type=int,
-    default=None,
-    help="Maximum posts to process per platform (overrides config)",
-)
-@click.option(
-    "--platforms",
-    default=None,
-    help="Comma-separated list of platforms to process (bluesky,mastodon,twitter)",
-)
-@click.option(
-    "--start-date",
-    default=None,
-    help='Start date in ISO format (YYYY-MM-DD) or "7_days_ago" (overrides config)',
-)
-@click.option(
-    "--end-date",
-    default=None,
-    help='End date in ISO format (YYYY-MM-DD) or "today" (overrides config)',
-)
-@click.pass_context
-def archive(ctx, max_posts, platforms, start_date, end_date):
-    """Archive posts from platforms (without deleting)."""
-    scrubber = SocialScrubber()
-    if ctx.obj and "log_level" in ctx.obj:
-        scrubber.config.log_level = ctx.obj["log_level"]
-        setup_logging(scrubber.config.log_level)
-    if max_posts is not None:
-        scrubber.config.scrub.max_posts_per_scrub = max_posts
-    if start_date is not None:
-        scrubber.config.scrub.start_date = start_date
-    if end_date is not None:
-        scrubber.config.scrub.end_date = end_date
-    selected_platforms = None
-    if platforms:
-        selected_platforms = [p.strip() for p in platforms.split(",")]
-    # Authenticate platforms
-    asyncio.run(_run_archive(scrubber, selected_platforms))
-
-
-async def _run_archive(scrubber, selected_platforms):
-    print_banner()
-    console.print("🔧 Checking platform configurations...")
-    for platform_name, platform in scrubber.platforms.items():
-        config_attr = getattr(scrubber.config, platform_name)
-        print_platform_status(platform_name, config_attr.is_configured, platform.is_authenticated)
-    all_configured_platforms = [
-        name for name, platform in scrubber.platforms.items()
-        if getattr(scrubber.config, name).is_configured
-    ]
-    if not all_configured_platforms:
-        console.print("\n❌ No platforms are configured. Please check your .env file.")
-        return
-    if selected_platforms:
-        invalid_platforms = [p for p in selected_platforms if p not in all_configured_platforms]
-        if invalid_platforms:
-            console.print(f"\n❌ Invalid or not configured platforms: {', '.join(invalid_platforms)}")
-            console.print(f"Available platforms: {', '.join(all_configured_platforms)}")
-            return
-        configured_platforms = [p for p in selected_platforms if p in all_configured_platforms]
-        console.print(f"\n🎯 Processing selected platforms: {', '.join(configured_platforms)}")
-    else:
-        configured_platforms = all_configured_platforms
-    console.print(f"\n🔐 Authenticating with {len(configured_platforms)} platform(s)...")
-    auth_results = await scrubber.authenticate_platforms(configured_platforms)
-    authenticated_platforms = [name for name, success in auth_results.items() if success]
-    if not authenticated_platforms:
-        console.print("\n❌ Failed to authenticate with any platforms.")
-        return
-    start_date = scrubber.config.scrub.get_start_datetime()
-    end_date = scrubber.config.scrub.get_end_datetime()
-    console.print(f"\n📅 Date range: {format_date_range(start_date, end_date)}")
-    console.print(f"🔢 Max posts per platform: {scrubber.config.scrub.max_posts_per_scrub}")
-    if not confirm_action("Proceed with fetching posts to archive?", default=True):
-        console.print("Operation cancelled.")
-        return
-    all_posts = await scrubber.get_posts_from_platforms(
-        authenticated_platforms,
-        start_date,
-        end_date,
-        scrubber.config.scrub.max_posts_per_scrub,
-    )
-    total_posts = sum(len(posts) for posts in all_posts.values())
-    if total_posts == 0:
-        console.print("\n✅ No posts found in the specified date range.")
-        return
-    console.print(f"\n📊 Found {total_posts} posts total:")
-    for platform_name, posts in all_posts.items():
-        if posts:
-            display_posts_table(posts, f"{platform_name.title()} Posts")
-    if not confirm_action(f"Archive {total_posts} posts?", default=False):
-        console.print("Archiving cancelled.")
-        return
-    for platform_name, posts in all_posts.items():
-        if not posts:
-            continue
-        results = await scrubber.archive_posts_from_platform(platform_name, posts)
-        if results:
-            console.print(f"\n📦 Archived posts from {platform_name.title()}:")
-            for r in results:
-                status = "✅" if r["archived"] else "❌"
-                console.print(f"{status} {r['post_id']} -> {r['archive_path']}")
-    console.print("\n✅ Archive process completed!")
 @click.group()
 @click.version_option(version=__version__, prog_name="social-scrubber")
 @click.option(
@@ -654,6 +540,130 @@ def test(ctx):
         setup_logging(scrubber.config.log_level)
 
     asyncio.run(scrubber.test_connections())
+
+
+@cli.command()
+@click.option(
+    "--max-posts",
+    type=int,
+    default=None,
+    help="Maximum posts to process per platform (overrides config)",
+)
+@click.option(
+    "--platforms",
+    default=None,
+    help="Comma-separated list of platforms to process (bluesky,mastodon,twitter)",
+)
+@click.option(
+    "--start-date",
+    default=None,
+    help='Start date in ISO format (YYYY-MM-DD) or "7_days_ago" (overrides config)',
+)
+@click.option(
+    "--end-date",
+    default=None,
+    help='End date in ISO format (YYYY-MM-DD) or "today" (overrides config)',
+)
+@click.pass_context
+def archive(ctx, max_posts, platforms, start_date, end_date):
+    """Archive posts from platforms (without deleting)."""
+    scrubber = SocialScrubber()
+    if ctx.obj and "log_level" in ctx.obj:
+        scrubber.config.log_level = ctx.obj["log_level"]
+        setup_logging(scrubber.config.log_level)
+    if max_posts is not None:
+        scrubber.config.scrub.max_posts_per_scrub = max_posts
+    if start_date is not None:
+        scrubber.config.scrub.start_date = start_date
+    if end_date is not None:
+        scrubber.config.scrub.end_date = end_date
+    selected_platforms = None
+    if platforms:
+        selected_platforms = [p.strip() for p in platforms.split(",")]
+    # Authenticate platforms
+    asyncio.run(_run_archive(scrubber, selected_platforms))
+
+
+async def _run_archive(scrubber, selected_platforms):
+    print_banner()
+    console.print("🔧 Checking platform configurations...")
+    for platform_name, platform in scrubber.platforms.items():
+        config_attr = getattr(scrubber.config, platform_name)
+        print_platform_status(
+            platform_name, config_attr.is_configured, platform.is_authenticated
+        )
+    all_configured_platforms = [
+        name
+        for name, platform in scrubber.platforms.items()
+        if getattr(scrubber.config, name).is_configured
+    ]
+    if not all_configured_platforms:
+        console.print("\n❌ No platforms are configured. Please check your .env file.")
+        return
+    if selected_platforms:
+        invalid_platforms = [
+            p for p in selected_platforms if p not in all_configured_platforms
+        ]
+        if invalid_platforms:
+            console.print(
+                f"\n❌ Invalid or not configured platforms: {', '.join(invalid_platforms)}"
+            )
+            console.print(f"Available platforms: {', '.join(all_configured_platforms)}")
+            return
+        configured_platforms = [
+            p for p in selected_platforms if p in all_configured_platforms
+        ]
+        console.print(
+            f"\n🎯 Processing selected platforms: {', '.join(configured_platforms)}"
+        )
+    else:
+        configured_platforms = all_configured_platforms
+    console.print(
+        f"\n🔐 Authenticating with {len(configured_platforms)} platform(s)..."
+    )
+    auth_results = await scrubber.authenticate_platforms(configured_platforms)
+    authenticated_platforms = [
+        name for name, success in auth_results.items() if success
+    ]
+    if not authenticated_platforms:
+        console.print("\n❌ Failed to authenticate with any platforms.")
+        return
+    start_date = scrubber.config.scrub.get_start_datetime()
+    end_date = scrubber.config.scrub.get_end_datetime()
+    console.print(f"\n📅 Date range: {format_date_range(start_date, end_date)}")
+    console.print(
+        f"🔢 Max posts per platform: {scrubber.config.scrub.max_posts_per_scrub}"
+    )
+    if not confirm_action("Proceed with fetching posts to archive?", default=True):
+        console.print("Operation cancelled.")
+        return
+    all_posts = await scrubber.get_posts_from_platforms(
+        authenticated_platforms,
+        start_date,
+        end_date,
+        scrubber.config.scrub.max_posts_per_scrub,
+    )
+    total_posts = sum(len(posts) for posts in all_posts.values())
+    if total_posts == 0:
+        console.print("\n✅ No posts found in the specified date range.")
+        return
+    console.print(f"\n📊 Found {total_posts} posts total:")
+    for platform_name, posts in all_posts.items():
+        if posts:
+            display_posts_table(posts, f"{platform_name.title()} Posts")
+    if not confirm_action(f"Archive {total_posts} posts?", default=False):
+        console.print("Archiving cancelled.")
+        return
+    for platform_name, posts in all_posts.items():
+        if not posts:
+            continue
+        results = await scrubber.archive_posts_from_platform(platform_name, posts)
+        if results:
+            console.print(f"\n📦 Archived posts from {platform_name.title()}:")
+            for r in results:
+                status = "✅" if r["archived"] else "❌"
+                console.print(f"{status} {r['post_id']} -> {r['archive_path']}")
+    console.print("\n✅ Archive process completed!")
 
 
 # For backward compatibility, make scrub the default command when called without subcommand
