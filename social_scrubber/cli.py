@@ -256,7 +256,7 @@ class SocialScrubber:
                 results[platform_name] = False
 
         # Summary
-        console.print(f"\n[bold]📊 Test Summary[/bold]")
+        console.print("\n[bold]📊 Test Summary[/bold]")
         successful = sum(1 for success in results.values() if success)
         total = len(results)
         console.print(f"✅ Successful connections: {successful}/{total}")
