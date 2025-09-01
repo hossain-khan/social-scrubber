@@ -1,0 +1,96 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    # Run weekly on Mondays at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  dependency-update:
+    name: Check for Dependency Updates
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+        cache: 'pip'
+    
+    - name: Install pip-tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install pip-tools
+    
+    - name: Check for outdated packages
+      run: |
+        pip list --outdated --format=json > outdated.json
+        if [[ $(cat outdated.json) != "[]" ]]; then
+          echo "📦 Found outdated packages:"
+          cat outdated.json | python -m json.tool
+        else
+          echo "✅ All packages are up to date"
+        fi
+    
+    - name: Security audit
+      run: |
+        pip install safety
+        safety check --json --output safety-report.json || true
+        if [[ -f safety-report.json ]] && [[ $(cat safety-report.json) != "[]" ]]; then
+          echo "🚨 Security vulnerabilities found:"
+          cat safety-report.json | python -m json.tool
+        else
+          echo "✅ No security vulnerabilities found"
+        fi
+    
+    - name: Create issue for outdated dependencies
+      if: always()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          let body = '## 🔄 Weekly Dependency Update Report\n\n';
+          
+          // Check for outdated packages
+          if (fs.existsSync('outdated.json')) {
+            const outdated = JSON.parse(fs.readFileSync('outdated.json', 'utf8'));
+            if (outdated.length > 0) {
+              body += '### 📦 Outdated Packages\n\n';
+              outdated.forEach(pkg => {
+                body += `- **${pkg.name}**: ${pkg.version} → ${pkg.latest_version}\n`;
+              });
+            } else {
+              body += '✅ All packages are up to date\n\n';
+            }
+          }
+          
+          // Check for security issues
+          if (fs.existsSync('safety-report.json')) {
+            const safety = JSON.parse(fs.readFileSync('safety-report.json', 'utf8'));
+            if (safety.length > 0) {
+              body += '\n### 🚨 Security Vulnerabilities\n\n';
+              safety.forEach(vuln => {
+                body += `- **${vuln.package}**: ${vuln.vulnerability}\n`;
+              });
+              body += '\n⚠️ **Action Required**: Please update affected packages\n';
+            } else {
+              body += '\n✅ No security vulnerabilities found\n';
+            }
+          }
+          
+          body += `\n---\n*Report generated on ${new Date().toISOString()}*`;
+          
+          // Only create issue if there are updates needed
+          if (body.includes('→') || body.includes('🚨')) {
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🔄 Weekly Dependency Update - ${new Date().toISOString().split('T')[0]}`,
+              body: body,
+              labels: ['dependencies', 'automated']
+            });
+          }

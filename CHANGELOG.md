@@ -8,20 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **GitHub Actions CI/CD pipeline** with comprehensive quality checks
+- **Pre-commit hooks** configuration for local development  
+- **Development scripts** for quality assurance (`scripts/pre-commit-checks.sh`)
+- **Modern Python project configuration** (`pyproject.toml`)
+- **Automated dependency updates** workflow
+- **Release automation** workflow for PyPI publishing
 - Twitter/X platform integration (planned)
 - Support for filtering posts by keywords or post IDs
 - Support for batch operations with progress bars
 - Configuration profiles for different deletion strategies
 
 ### Changed
-
-### Deprecated
-
-### Removed
+- **Improved timezone handling** using `dateutil.parser` for robust datetime parsing
+- **Enhanced import organization** - moved all imports to top of files
+- **Better test environment handling** using pytest monkeypatch fixtures
+- **Enhanced error handling** for datetime parsing failures
 
 ### Fixed
-
-### Security
+- **Import statement organization** following Python conventions
+- **Timezone conversion issues** in Bluesky and Mastodon platforms
+- **Test environment variable cleanup** using proper pytest fixtures
+- **Datetime parsing robustness** with better error handling
 
 ## [0.1.0] - 2025-08-31
 
