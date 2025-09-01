@@ -8,11 +8,72 @@ We use a modular platform-based architecture where each social media platform ha
 
 We organize code into these main modules: `cli.py` for command-line interface, `config.py` for configuration management, `utils.py` for shared utilities, and platform-specific modules in the `platforms/` directory.
 
-## Code Style & Standards
 
-We follow strict Python code quality standards enforced by our CI/CD pipeline. Use Black for code formatting with line length 88, isort for import sorting with Black-compatible profile, flake8 for linting with complexity limit of 10, mypy for type checking with gradual typing approach, and bandit for security scanning.
+## Development Workflow
 
-All new code should include proper type hints using Python 3.9+ syntax. We prefer explicit typing over implicit, especially for function parameters and return values.
+### Feature Development and Bug Fixes
+For ANY new features, bug fixes, or changes:
+
+1. **Create a new branch first**: Always create a feature branch before making changes
+   ```bash
+   git checkout -b feature/your-feature-name
+   # OR
+   git checkout -b fix/bug-description
+   ```
+
+2. **Use the pre-commit script**: Before committing and pushing, ALWAYS run the quality checks script:
+   ```bash
+   ./scripts/pre-commit-checks.sh
+   ```
+   This script runs all required quality checks (Black, isort, mypy, flake8, pytest, JSON validation) and ensures CI will pass.
+
+3. **Commit and push**: Only commit and push after the pre-commit script passes
+   ```bash
+   git add .
+   git commit -m "descriptive commit message"
+   git push -u origin your-branch-name
+   ```
+
+4. **Create Pull Request**: Create a PR for code review and CI validation before merging to main
+
+### Branch Naming Convention
+- **Features**: `feature/feature-name` (e.g., `feature/add-twitter-support`)
+- **Bug Fixes**: `fix/bug-description` (e.g., `fix/image-attachment-blob-reference`)
+- **Documentation**: `docs/description` (e.g., `docs/update-readme`)
+- **Refactoring**: `refactor/description` (e.g., `refactor/extract-content-processor`)
+
+## Code Quality Requirements
+
+Before committing any code changes, you MUST run the pre-commit quality checks:
+
+**Recommended**: Use the automated script for all quality checks:
+```bash
+./scripts/pre-commit-checks.sh
+```
+
+**Manual alternative** - run these formatting and validation steps in order:
+
+1. **Format code with Black**: Always run `black .` to ensure proper code formatting across all files
+2. **Sort imports with isort**: Always run `isort .` to maintain consistent import ordering across all files
+3. **Type check with mypy**: Run `mypy src/ tests/` to catch type annotation issues
+4. **Lint with flake8**: Run `flake8 src/ tests/ *.py` to check code quality and style including root directory files
+5. **Run tests**: Run `python -m pytest tests/` to ensure all unit tests pass
+6. **Validate JSON files**: Run `python -m json.tool sync_state.json > /dev/null` to validate JSON syntax
+7. **Update CHANGELOG.md**: Document any new features, bug fixes, or breaking changes in the changelog
+
+## Changelog Management
+
+Always update `docs/CHANGELOG.md` when making changes:
+
+- **New Features**: Add to the `[Unreleased]` section under `### Added`
+- **Bug Fixes**: Add to the `[Unreleased]` section under `### Fixed`
+- **Breaking Changes**: Add to the `[Unreleased]` section under `### Changed`
+- **Deprecations**: Add to the `[Unreleased]` section under `### Deprecated`
+- **Removals**: Add to the `[Unreleased]` section under `### Removed`
+- **Security Updates**: Add to the `[Unreleased]` section under `### Security`
+
+Follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format for consistency.
+
 
 ## Dependencies & Package Management
 
