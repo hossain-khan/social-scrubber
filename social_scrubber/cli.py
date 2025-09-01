@@ -381,9 +381,17 @@ class SocialScrubber:
         console.print(
             f"🔢 Max posts per platform: {self.config.scrub.max_posts_per_scrub}"
         )
-        console.print(
-            f"🧪 Dry run mode: {'ON' if self.config.scrub.dry_run else 'OFF'}"
-        )
+
+        # Display dry run mode with warning highlighting when OFF
+        if self.config.scrub.dry_run:
+            console.print("🧪 Dry run mode: [green]ON[/green]")
+        else:
+            console.print(
+                "🧪 Dry run mode: [bold red on yellow] ⚠️  OFF  ⚠️ [/bold red on yellow]"
+            )
+            console.print(
+                "[yellow]⚠️  WARNING: Posts will be permanently deleted![/yellow]"
+            )
 
         if not confirm_action("Proceed with fetching posts?", default=True):
             console.print("Operation cancelled.")
@@ -412,7 +420,13 @@ class SocialScrubber:
         if self.config.scrub.dry_run:
             console.print("\n🧪 This is a DRY RUN. No posts will actually be deleted.")
         else:
-            if not confirm_action(f"Delete {total_posts} posts?", default=False):
+            console.print(
+                f"\n[yellow]⚠️  About to permanently delete {total_posts} posts[/yellow]"
+            )
+            if not confirm_action(
+                f"Are you sure you want to delete {total_posts} posts? This cannot be undone",
+                default=False,
+            ):
                 console.print("Deletion cancelled.")
                 return
 
