@@ -651,7 +651,7 @@ async def _run_archive(scrubber, selected_platforms):
     for platform_name, posts in all_posts.items():
         if posts:
             display_posts_table(posts, f"{platform_name.title()} Posts")
-    if not confirm_action(f"Archive {total_posts} posts?", default=False):
+    if not confirm_action(f"Archive {total_posts} posts?", default=True):
         console.print("Archiving cancelled.")
         return
     for platform_name, posts in all_posts.items():
