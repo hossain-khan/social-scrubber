@@ -16,12 +16,12 @@ import sys
 from datetime import datetime, timedelta
 
 # Add the parent directory to Python path to import social_scrubber
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # noqa: E402
 
-from social_scrubber.config import Config
-from social_scrubber.platforms.bluesky import BlueskyPlatform
-from social_scrubber.platforms.mastodon import MastodonPlatform
-from social_scrubber.utils import display_posts_table
+from social_scrubber.config import Config  # noqa: E402
+from social_scrubber.platforms.bluesky import BlueskyPlatform  # noqa: E402
+from social_scrubber.platforms.mastodon import MastodonPlatform  # noqa: E402
+from social_scrubber.utils import display_posts_table  # noqa: E402
 
 
 async def main():
