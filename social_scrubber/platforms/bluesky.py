@@ -1,10 +1,9 @@
 """Bluesky platform implementation."""
 
-import asyncio
 from datetime import datetime
 from typing import List, Optional
 
-from atproto import Client, models
+from atproto import Client
 from dateutil import parser as date_parser
 
 from ..config import BlueskyConfig

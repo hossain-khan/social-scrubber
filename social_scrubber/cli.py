@@ -1,7 +1,6 @@
 """Main CLI application for Social Scrubber."""
 
 import asyncio
-import sys
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -242,7 +241,7 @@ class SocialScrubber:
 
         # Confirm deletion
         if self.config.scrub.dry_run:
-            console.print(f"\n🧪 This is a DRY RUN. No posts will actually be deleted.")
+            console.print("\n🧪 This is a DRY RUN. No posts will actually be deleted.")
         else:
             if not confirm_action(f"Delete {total_posts} posts?", default=False):
                 console.print("Deletion cancelled.")

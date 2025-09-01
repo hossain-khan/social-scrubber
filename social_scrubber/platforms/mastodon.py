@@ -1,6 +1,5 @@
 """Mastodon platform implementation."""
 
-import asyncio
 import re
 from datetime import datetime
 from typing import List, Optional

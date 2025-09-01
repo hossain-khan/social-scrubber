@@ -88,7 +88,7 @@ class TestConfig:
 
         assert config.bluesky.handle == "test.bsky.social"
         assert config.bluesky.password == "test-password"
-        assert config.scrub.dry_run == False
+        assert config.scrub.dry_run is False
         assert config.scrub.max_posts_per_scrub == 25
 
         # No manual cleanup needed - monkeypatch handles it automatically

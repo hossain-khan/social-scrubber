@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from social_scrubber.config import Config
 from social_scrubber.platforms.bluesky import BlueskyPlatform
 from social_scrubber.platforms.mastodon import MastodonPlatform
-from social_scrubber.utils import display_deletion_results, display_posts_table
+from social_scrubber.utils import display_posts_table
 
 
 async def main():
@@ -84,11 +84,11 @@ async def main():
             # Note: In a real scenario, you would ask for user confirmation
             # before proceeding with actual deletion
             print(
-                f"\n💡 To actually delete these posts, set DRY_RUN=false in your .env file"
+                "\n💡 To actually delete these posts, set DRY_RUN=false in your .env file"
             )
 
         else:
-            print(f"ℹ️ No posts found in the specified date range")
+            print("ℹ️ No posts found in the specified date range")
 
     print("\n✅ Example script completed!")
 

@@ -1,7 +1,6 @@
 """Base platform interface for social media platforms."""
 
 import json
-import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime

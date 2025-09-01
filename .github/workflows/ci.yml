@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
     
     steps:
     - name: Checkout code
@@ -100,8 +100,8 @@ jobs:
     
     - name: Test package build
       run: |
-        python setup.py check
-        python setup.py sdist bdist_wheel
+        python -c "import sys; print(f'Python {sys.version}')"
+        python -m build --sdist --wheel
     
     - name: Test executable script (Unix only)
       if: runner.os != 'Windows'
