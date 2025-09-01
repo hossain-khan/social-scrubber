@@ -150,24 +150,68 @@ The interactive mode will:
 4. Ask for confirmation before deletion
 5. Display results and archive information
 
-### Command Line Options
-You can also use command-line options to override configuration:
+### CLI Commands
+Social Scrubber provides several commands for different operations:
+
+#### Main Commands
+```bash
+# Show all available commands and options
+social-scrubber --help
+
+# Show version information
+social-scrubber --version
+
+# Show current configuration
+social-scrubber config
+
+# Test platform connections without scrubbing
+social-scrubber test
+
+# Run the scrub process (default command)
+social-scrubber scrub [OPTIONS]
+```
+
+#### Scrub Command Options
+The `scrub` command (which runs by default) supports these options:
 
 ```bash
 # Run in dry-run mode (safe - won't actually delete)
+social-scrubber scrub --dry-run
+# OR (backward compatible)
 social-scrubber --dry-run
 
 # Actually delete posts (be careful!)
-social-scrubber --no-dry-run
+social-scrubber scrub --no-dry-run
 
 # Process only specific platforms
-social-scrubber --platforms bluesky,mastodon
+social-scrubber scrub --platforms bluesky,mastodon
 
 # Limit number of posts per platform
-social-scrubber --max-posts 5
+social-scrubber scrub --max-posts 5
 
 # Custom date range
-social-scrubber --start-date 2024-01-01T00:00:00 --end-date 2024-01-31T23:59:59
+social-scrubber scrub --start-date 2024-01-01T00:00:00 --end-date 2024-01-31T23:59:59
+
+# Set logging level for detailed output
+social-scrubber --log-level DEBUG scrub --dry-run
+```
+
+#### Quick Examples
+```bash
+# Check your configuration
+social-scrubber config
+
+# Test if your platform credentials work
+social-scrubber test
+
+# Safely preview what would be deleted
+social-scrubber --dry-run
+
+# Actually delete posts (with confirmation)
+social-scrubber --no-dry-run
+
+# Debug connection issues
+social-scrubber --log-level DEBUG test
 ```
 
 > **Note**: You can also use `python -m social_scrubber` if you prefer the module syntax.
