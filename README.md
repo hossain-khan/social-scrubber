@@ -13,14 +13,95 @@
 
 ## Getting Started
 
-1. Clone the repository
-2. Create Python virtual environment: `python -m venv .venv` and `source .venv/bin/activate`
-3. Install requirements: `pip install -r requirements.txt`
-4. Copy environment template and update: `cp .env.example .env`
-5. Run the tool: `python social-scrubber`
-6. Follow the prompts to authenticate and select deletion options
+### Quick Setup
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/hossain-khan/social-scrubber.git
+   cd social-scrubber
+   ```
+
+2. Set up the development environment:
+   ```bash
+   make setup
+   ```
+
+3. Activate the virtual environment:
+   ```bash
+   source .venv/bin/activate  # macOS/Linux
+   # or
+   .venv\Scripts\activate     # Windows
+   ```
+
+4. Install dependencies:
+   ```bash
+   make install
+   ```
+
+5. Configure your credentials:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your platform credentials
+   ```
+
+6. Run the tool:
+   ```bash
+   make run
+   # or
+   python -m social_scrubber
+   # or
+   ./social-scrubber
+   ```
+
+### Manual Setup
+If you prefer not to use Make:
+
+1. Create and activate virtual environment:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # macOS/Linux
+   ```
+
+2. Install requirements:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Copy environment template and configure:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your credentials
+   ```
+
+4. Run the tool:
+   ```bash
+   python -m social_scrubber
+   ```
 
 ## Configuration
+
+### Platform Credentials
+
+#### Bluesky
+1. Go to your Bluesky Settings > App Passwords
+2. Create a new app password
+3. Add to your `.env` file:
+   ```bash
+   BLUESKY_HANDLE=your-handle.bsky.social
+   BLUESKY_PASSWORD=your-app-password
+   ```
+
+#### Mastodon
+1. Go to your Mastodon instance Settings > Development > Applications
+2. Create a new application with `read` and `write` scopes
+3. Copy the access token
+4. Add to your `.env` file:
+   ```bash
+   MASTODON_API_BASE_URL=https://your-instance.social
+   MASTODON_ACCESS_TOKEN=your-access-token
+   ```
+
+#### Twitter/X (Coming Soon)
+Twitter integration is planned but not yet implemented.
 
 ### Environment Variables
 ```bash
@@ -31,13 +112,126 @@ BLUESKY_PASSWORD=your-app-password
 # Mastodon Credentials  
 MASTODON_API_BASE_URL=https://your-instance.social
 MASTODON_ACCESS_TOKEN=your-access-token
+
+# Twitter/X Credentials (Future use)
+TWITTER_API_KEY=your-api-key
+TWITTER_API_SECRET=your-api-secret
+TWITTER_ACCESS_TOKEN=your-access-token
+TWITTER_ACCESS_TOKEN_SECRET=your-access-token-secret
+TWITTER_BEARER_TOKEN=your-bearer-token
+
+# Scrub Configuration
+SCRUB_START_DATE=7_days_ago  # or ISO date like 2024-01-01T00:00:00
+SCRUB_END_DATE=today         # or ISO date like 2024-01-31T23:59:59
+MAX_POSTS_PER_SCRUB=10       # Maximum posts to process per platform
+DRY_RUN=true                 # Set to 'false' to actually delete posts
+
+# Archival Settings
+ARCHIVE_BEFORE_DELETE=true   # Archive posts before deletion
+ARCHIVE_PATH=./archives      # Where to store archived posts
+
+# Logging
+LOG_LEVEL=INFO              # DEBUG, INFO, WARNING, ERROR
 ```
 
-### Key Settings
-- `SCRUB_START_DATE`: Date to start deleting posts from (default: 7 days ago)
-- `SCRUB_START_END`: End date for posts to stop deleting at (default: today's date)
-- `MAX_POSTS_PER_SCRUB`: Maximum scrubs per run (default: 10)
-- `DRY_RUN`: Test mode without posting (default: true)
+## Usage
+
+### Interactive Mode (Recommended)
+Run the tool in interactive mode for a guided experience:
+
+```bash
+python -m social_scrubber
+```
+
+The interactive mode will:
+1. Check your platform configurations
+2. Authenticate with configured platforms
+3. Show you posts that would be deleted
+4. Ask for confirmation before deletion
+5. Display results and archive information
+
+### Command Line Options
+You can also use command-line options to override configuration:
+
+```bash
+# Run in dry-run mode (safe - won't actually delete)
+python -m social_scrubber --dry-run
+
+# Actually delete posts (be careful!)
+python -m social_scrubber --no-dry-run
+
+# Process only specific platforms
+python -m social_scrubber --platforms bluesky,mastodon
+
+# Limit number of posts per platform
+python -m social_scrubber --max-posts 5
+
+# Custom date range
+python -m social_scrubber --start-date 2024-01-01T00:00:00 --end-date 2024-01-31T23:59:59
+```
+
+### Development Commands
+If you're developing or contributing:
+
+```bash
+# Set up development environment
+make setup
+make install-dev
+
+# Run tests
+make test
+
+# Format code
+make format
+
+# Lint code
+make lint
+
+# Clean build artifacts
+make clean
+```
+
+## Project Structure
+
+```
+social-scrubber/
+├── social_scrubber/           # Main package
+│   ├── __init__.py           # Package info
+│   ├── __main__.py           # Entry point for -m flag
+│   ├── cli.py                # Command-line interface
+│   ├── config.py             # Configuration management
+│   ├── utils.py              # Utility functions
+│   └── platforms/            # Platform implementations
+│       ├── __init__.py
+│       ├── base.py           # Base platform interface
+│       ├── bluesky.py        # Bluesky implementation
+│       ├── mastodon.py       # Mastodon implementation
+│       └── twitter.py        # Twitter implementation (WIP)
+├── tests/                    # Test suite
+├── .env.example             # Environment template
+├── requirements.txt         # Python dependencies
+├── setup.py                # Package setup
+├── Makefile                # Development commands
+├── social-scrubber         # Executable script
+└── README.md               # This file
+```
+
+## Safety Features
+
+- **Dry Run Mode**: Enabled by default - see what would be deleted without actually deleting
+- **Date Filtering**: Only delete posts within specified date ranges
+- **Post Limits**: Configurable maximum posts per run to prevent accidents
+- **Archival**: Automatically archive posts before deletion (configurable)
+- **Confirmation Prompts**: Interactive confirmation before destructive actions
+- **Detailed Logging**: Comprehensive logs of all operations
+
+## Supported Platforms
+
+| Platform | Status | Features |
+|----------|--------|----------|
+| **Bluesky** | ✅ Working | Full CRUD operations, date filtering, archival |
+| **Mastodon** | ✅ Working | Full CRUD operations, date filtering, archival |
+| **Twitter/X** | 🚧 Planned | Coming in future release |
 
 ## Disclaimer
 
