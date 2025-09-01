@@ -169,67 +169,78 @@ class SocialScrubber:
     def show_config(self):
         """Display current configuration."""
         console.print("\n[bold blue]📋 Current Configuration[/bold blue]\n")
-        
+
         # Platform configurations
         table = Table(title="Platform Configuration")
         table.add_column("Platform", style="cyan")
         table.add_column("Status", style="green")
         table.add_column("Configuration")
-        
+
         for platform_name, platform in self.platforms.items():
             config_attr = getattr(self.config, platform_name)
-            status = "✅ Configured" if config_attr.is_configured else "❌ Not Configured"
-            
+            status = (
+                "✅ Configured" if config_attr.is_configured else "❌ Not Configured"
+            )
+
             # Get config details (without sensitive info)
             config_details = []
-            if hasattr(config_attr, 'handle') and config_attr.handle:
+            if hasattr(config_attr, "handle") and config_attr.handle:
                 config_details.append(f"Handle: {config_attr.handle}")
-            if hasattr(config_attr, 'api_base_url') and config_attr.api_base_url:
+            if hasattr(config_attr, "api_base_url") and config_attr.api_base_url:
                 config_details.append(f"Instance: {config_attr.api_base_url}")
-            if hasattr(config_attr, 'api_key') and config_attr.api_key:
+            if hasattr(config_attr, "api_key") and config_attr.api_key:
                 config_details.append("API Key: *** (configured)")
-                
-            config_text = "\n".join(config_details) if config_details else "No details available"
+
+            config_text = (
+                "\n".join(config_details) if config_details else "No details available"
+            )
             table.add_row(platform_name.title(), status, config_text)
-            
+
         console.print(table)
-        
+
         # Scrub configuration
         console.print("\n[bold blue]🧹 Scrub Configuration[/bold blue]")
         scrub_table = Table()
         scrub_table.add_column("Setting", style="cyan")
         scrub_table.add_column("Value", style="yellow")
-        
+
         scrub_table.add_row("Dry Run Mode", str(self.config.scrub.dry_run))
-        scrub_table.add_row("Max Posts Per Scrub", str(self.config.scrub.max_posts_per_scrub))
+        scrub_table.add_row(
+            "Max Posts Per Scrub", str(self.config.scrub.max_posts_per_scrub)
+        )
         scrub_table.add_row("Start Date", self.config.scrub.start_date)
         scrub_table.add_row("End Date", self.config.scrub.end_date)
-        scrub_table.add_row("Archive Before Delete", str(self.config.scrub.archive_before_delete))
+        scrub_table.add_row(
+            "Archive Before Delete", str(self.config.scrub.archive_before_delete)
+        )
         if self.config.scrub.archive_before_delete:
             scrub_table.add_row("Archive Path", self.config.scrub.archive_path)
         scrub_table.add_row("Log Level", self.config.log_level)
-        
+
         console.print(scrub_table)
 
     async def test_connections(self):
         """Test client connections without scrubbing."""
         console.print("\n[bold blue]🔌 Testing Platform Connections[/bold blue]\n")
-        
+
         # Get configured platforms
         configured_platforms = [
-            name for name, platform in self.platforms.items()
+            name
+            for name, platform in self.platforms.items()
             if getattr(self.config, name).is_configured
         ]
-        
+
         if not configured_platforms:
-            console.print("❌ No platforms are configured. Please check your configuration.")
+            console.print(
+                "❌ No platforms are configured. Please check your configuration."
+            )
             return
-            
+
         results = {}
         for platform_name in configured_platforms:
             platform = self.platforms[platform_name]
             console.print(f"Testing {platform.display_name}...")
-            
+
             try:
                 success = await platform.authenticate()
                 if success:
@@ -239,17 +250,21 @@ class SocialScrubber:
                     console.print(f"❌ {platform.display_name}: Authentication failed")
                     results[platform_name] = False
             except Exception as e:
-                console.print(f"❌ {platform.display_name}: Connection error - {str(e)}")
+                console.print(
+                    f"❌ {platform.display_name}: Connection error - {str(e)}"
+                )
                 results[platform_name] = False
-                
+
         # Summary
         console.print(f"\n[bold]📊 Test Summary[/bold]")
         successful = sum(1 for success in results.values() if success)
         total = len(results)
         console.print(f"✅ Successful connections: {successful}/{total}")
-        
+
         if successful == total:
-            console.print("[green]🎉 All configured platforms are working correctly![/green]")
+            console.print(
+                "[green]🎉 All configured platforms are working correctly![/green]"
+            )
         elif successful > 0:
             console.print("[yellow]⚠️ Some platforms have connection issues[/yellow]")
         else:
@@ -367,10 +382,10 @@ def cli(ctx, log_level):
     """Social Scrubber - Bulk delete your social media posts."""
     # Ensure context object exists
     ctx.ensure_object(dict)
-    
+
     # Store global options in context
     if log_level:
-        ctx.obj['log_level'] = log_level
+        ctx.obj["log_level"] = log_level
 
 
 @cli.command()
@@ -403,13 +418,13 @@ def cli(ctx, log_level):
 @click.pass_context
 def scrub(ctx, dry_run, max_posts, platforms, start_date, end_date):
     """Run the scrub process to delete posts (default command)."""
-    
+
     # Create and configure the scrubber
     scrubber = SocialScrubber()
 
     # Apply global log level if specified
-    if ctx.obj and 'log_level' in ctx.obj:
-        scrubber.config.log_level = ctx.obj['log_level']
+    if ctx.obj and "log_level" in ctx.obj:
+        scrubber.config.log_level = ctx.obj["log_level"]
         setup_logging(scrubber.config.log_level)
 
     # Override config with CLI arguments
@@ -434,12 +449,12 @@ def scrub(ctx, dry_run, max_posts, platforms, start_date, end_date):
 def config(ctx):
     """Show current configuration."""
     scrubber = SocialScrubber()
-    
+
     # Apply global log level if specified
-    if ctx.obj and 'log_level' in ctx.obj:
-        scrubber.config.log_level = ctx.obj['log_level']
+    if ctx.obj and "log_level" in ctx.obj:
+        scrubber.config.log_level = ctx.obj["log_level"]
         setup_logging(scrubber.config.log_level)
-    
+
     scrubber.show_config()
 
 
@@ -448,12 +463,12 @@ def config(ctx):
 def test(ctx):
     """Test client connections without scrubbing."""
     scrubber = SocialScrubber()
-    
+
     # Apply global log level if specified
-    if ctx.obj and 'log_level' in ctx.obj:
-        scrubber.config.log_level = ctx.obj['log_level']
+    if ctx.obj and "log_level" in ctx.obj:
+        scrubber.config.log_level = ctx.obj["log_level"]
         setup_logging(scrubber.config.log_level)
-    
+
     asyncio.run(scrubber.test_connections())
 
 
@@ -461,22 +476,25 @@ def test(ctx):
 def main():
     """Main entry point."""
     import sys
-    
+
     # If no arguments provided, just run the CLI group (will show help)
     if len(sys.argv) == 1:
         cli()
         return
-    
+
     # Check if first argument is a known command or option
-    known_commands = ['config', 'test', 'scrub']
-    known_options = ['--help', '--version', '--log-level']
-    
+    known_commands = ["config", "test", "scrub"]
+    known_options = ["--help", "--version", "--log-level"]
+
     first_arg = sys.argv[1]
-    
+
     # If first arg is not a known command or global option, assume it's for scrub command
-    if not any(first_arg.startswith(opt) for opt in known_options) and first_arg not in known_commands:
-        sys.argv.insert(1, 'scrub')
-    
+    if (
+        not any(first_arg.startswith(opt) for opt in known_options)
+        and first_arg not in known_commands
+    ):
+        sys.argv.insert(1, "scrub")
+
     cli()
 
 
