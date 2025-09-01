@@ -47,9 +47,9 @@
    ```bash
    make run
    # or
-   python -m social_scrubber
+   social-scrubber
    # or
-   ./social-scrubber
+   python -m social_scrubber
    ```
 
 ### Manual Setup
@@ -74,7 +74,7 @@ If you prefer not to use Make:
 
 4. Run the tool:
    ```bash
-   python -m social_scrubber
+   social-scrubber
    ```
 
 ## Configuration
@@ -140,7 +140,7 @@ LOG_LEVEL=INFO              # DEBUG, INFO, WARNING, ERROR
 Run the tool in interactive mode for a guided experience:
 
 ```bash
-python -m social_scrubber
+social-scrubber
 ```
 
 The interactive mode will:
@@ -155,20 +155,22 @@ You can also use command-line options to override configuration:
 
 ```bash
 # Run in dry-run mode (safe - won't actually delete)
-python -m social_scrubber --dry-run
+social-scrubber --dry-run
 
 # Actually delete posts (be careful!)
-python -m social_scrubber --no-dry-run
+social-scrubber --no-dry-run
 
 # Process only specific platforms
-python -m social_scrubber --platforms bluesky,mastodon
+social-scrubber --platforms bluesky,mastodon
 
 # Limit number of posts per platform
-python -m social_scrubber --max-posts 5
+social-scrubber --max-posts 5
 
 # Custom date range
-python -m social_scrubber --start-date 2024-01-01T00:00:00 --end-date 2024-01-31T23:59:59
+social-scrubber --start-date 2024-01-01T00:00:00 --end-date 2024-01-31T23:59:59
 ```
+
+> **Note**: You can also use `python -m social_scrubber` if you prefer the module syntax.
 
 ### Development Commands
 If you're developing or contributing:

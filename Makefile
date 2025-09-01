@@ -41,7 +41,7 @@ install-dev:
 
 # Run the application
 run: check-env
-	python -m social_scrubber
+	social-scrubber
 
 # Check if .env file exists
 check-env:
