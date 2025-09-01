@@ -178,14 +178,20 @@ If you're developing or contributing:
 make setup
 make install-dev
 
-# Run tests
-make test
+# Run all pre-commit quality checks
+make pre-commit
 
-# Format code
-make format
+# Individual quality checks
+make format    # Format code (black + isort)
+make lint      # Run linting (flake8 + mypy + bandit)
+make test      # Run test suite
 
-# Lint code
-make lint
+# Pre-commit hooks (optional but recommended)
+pre-commit install
+pre-commit run --all-files
+
+# Manual script execution
+./scripts/pre-commit-checks.sh
 
 # Clean build artifacts
 make clean
@@ -232,6 +238,34 @@ social-scrubber/
 | **Bluesky** | ✅ Working | Full CRUD operations, date filtering, archival |
 | **Mastodon** | ✅ Working | Full CRUD operations, date filtering, archival |
 | **Twitter/X** | 🚧 Planned | Coming in future release |
+
+## CI/CD & Quality Assurance
+
+### Automated Checks
+This project uses comprehensive CI/CD pipelines to ensure code quality:
+
+- **🔍 Code Quality**: Black formatting, isort imports, flake8 linting, mypy type checking
+- **🔒 Security**: Bandit security scanning, dependency vulnerability checks  
+- **🧪 Testing**: Full test suite across Python 3.8-3.12 on Linux, Windows, macOS
+- **📦 Build**: Package installation and executable testing
+- **🚀 Release**: Automated PyPI publishing on tagged releases
+
+### GitHub Actions Workflows
+- **CI Pipeline** (`.github/workflows/ci.yml`): Runs on every push and PR
+- **Release Pipeline** (`.github/workflows/release.yml`): Automated package publishing
+- **Dependency Updates** (`.github/workflows/dependencies.yml`): Weekly security and update checks
+
+### Pre-commit Hooks
+Install pre-commit hooks for local development:
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+Run quality checks before committing:
+```bash
+make pre-commit  # or ./scripts/pre-commit-checks.sh
+```
 
 ## Disclaimer
 

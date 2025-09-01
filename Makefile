@@ -1,4 +1,4 @@
-.PHONY: help install install-dev run clean test lint format check-env setup
+.PHONY: help install install-dev run clean test lint format check-env setup pre-commit
 
 # Default target
 help:
@@ -9,7 +9,8 @@ help:
 	@echo "  run          - Run the social scrubber"
 	@echo "  test         - Run tests"
 	@echo "  lint         - Run linting checks"
-	@echo "  format       - Format code with black"
+	@echo "  format       - Format code with black and isort"
+	@echo "  pre-commit   - Run all pre-commit quality checks"
 	@echo "  clean        - Clean up build artifacts"
 	@echo "  check-env    - Check if .env file exists"
 
@@ -34,8 +35,9 @@ install:
 install-dev:
 	pip install --upgrade pip
 	pip install -r requirements.txt
+	pip install -r requirements-dev.txt
 	pip install -e .
-	pip install black flake8 pytest pytest-asyncio
+	@echo "💡 Consider installing pre-commit hooks: pre-commit install"
 
 # Run the application
 run: check-env
@@ -57,12 +59,24 @@ test:
 
 # Run linting
 lint:
-	flake8 social_scrubber/
-	black --check social_scrubber/
+	flake8 social_scrubber/ tests/ examples/
+	mypy social_scrubber/ --ignore-missing-imports --no-strict-optional
+	bandit -r social_scrubber/ --quiet
 
 # Format code
 format:
-	black social_scrubber/
+	black social_scrubber/ tests/ examples/
+	isort social_scrubber/ tests/ examples/
+
+# Run pre-commit quality checks
+pre-commit:
+	@if [ -f scripts/pre-commit-checks.sh ]; then \
+		chmod +x scripts/pre-commit-checks.sh; \
+		./scripts/pre-commit-checks.sh; \
+	else \
+		echo "❌ scripts/pre-commit-checks.sh not found"; \
+		exit 1; \
+	fi
 
 # Clean up build artifacts
 clean:
