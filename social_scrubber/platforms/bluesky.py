@@ -69,12 +69,15 @@ class BlueskyPlatform(BasePlatform):
 
         try:
             while True:
-                # Get posts from the API
-                response = self.client.app.bsky.feed.get_author_feed(
-                    actor=self.config.handle,
-                    limit=min(50, limit - collected) if limit else 50,
-                    cursor=cursor,
-                )
+                # Get posts from the API with proper parameter structure
+                params = {
+                    "actor": self.config.handle,
+                    "limit": min(50, limit - collected) if limit else 50,
+                }
+                if cursor:
+                    params["cursor"] = cursor
+
+                response = self.client.app.bsky.feed.get_author_feed(params)
 
                 if not response.feed:
                     break
