@@ -270,8 +270,13 @@ class SocialScrubber:
         else:
             console.print("[red]❌ No platforms are connecting properly[/red]")
 
-    async def run_interactive(self):
-        """Run the interactive mode."""
+    async def run_interactive(self, selected_platforms: Optional[List[str]] = None):
+        """Run the interactive mode with optional platform filtering.
+
+        Args:
+            selected_platforms: List of platform names to process.
+                               If None, all configured platforms are processed.
+        """
         print_banner()
 
         console.print("🔧 Checking platform configurations...")
@@ -283,18 +288,42 @@ class SocialScrubber:
                 platform_name, config_attr.is_configured, platform.is_authenticated
             )
 
-        # Get configured platforms
-        configured_platforms = [
+        # Get configured platforms, filtered by selection if provided
+        all_configured_platforms = [
             name
             for name, platform in self.platforms.items()
             if getattr(self.config, name).is_configured
         ]
 
-        if not configured_platforms:
+        if not all_configured_platforms:
             console.print(
                 "\n❌ No platforms are configured. Please check your .env file."
             )
             return
+
+        # Filter by selected platforms if provided
+        if selected_platforms:
+            # Validate selected platforms
+            invalid_platforms = [
+                p for p in selected_platforms if p not in all_configured_platforms
+            ]
+            if invalid_platforms:
+                console.print(
+                    f"\n❌ Invalid or not configured platforms: {', '.join(invalid_platforms)}"
+                )
+                console.print(
+                    f"Available platforms: {', '.join(all_configured_platforms)}"
+                )
+                return
+
+            configured_platforms = [
+                p for p in selected_platforms if p in all_configured_platforms
+            ]
+            console.print(
+                f"\n🎯 Processing selected platforms: {', '.join(configured_platforms)}"
+            )
+        else:
+            configured_platforms = all_configured_platforms
 
         # Authenticate with platforms
         console.print(
@@ -440,8 +469,13 @@ def scrub(ctx, dry_run, max_posts, platforms, start_date, end_date):
     if end_date is not None:
         scrubber.config.scrub.end_date = end_date
 
+    # Parse platforms list
+    selected_platforms = None
+    if platforms:
+        selected_platforms = [p.strip() for p in platforms.split(",")]
+
     # Run the interactive scrubber
-    asyncio.run(scrubber.run_interactive())
+    asyncio.run(scrubber.run_interactive(selected_platforms))
 
 
 @cli.command()
