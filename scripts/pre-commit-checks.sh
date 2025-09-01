@@ -35,7 +35,15 @@ echo "✅ Linting passed"
 
 echo
 echo "5️⃣ Security Check (bandit)..."
-bandit -r social_scrubber/ -f json --quiet || echo "⚠️ Security warnings found (non-blocking)"
+# Run bandit and capture output, only show issues if found
+bandit_output=$(bandit -r social_scrubber/ --quiet --format txt 2>/dev/null)
+if [ $? -eq 0 ]; then
+    echo "✅ No security issues found"
+else
+    echo "⚠️ Security warnings found:"
+    echo "$bandit_output"
+    echo "🔍 Review and address security concerns above"
+fi
 echo "✅ Security check completed"
 
 echo
