@@ -677,7 +677,7 @@ def main():
         return
 
     # Check if first argument is a known command or option
-    known_commands = ["config", "test", "scrub"]
+    known_commands = ["config", "test", "scrub", "archive"]
     known_options = ["--help", "--version", "--log-level"]
 
     first_arg = sys.argv[1]
