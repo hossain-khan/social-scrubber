@@ -3,6 +3,7 @@
 import asyncio
 from datetime import datetime
 from typing import List, Optional
+from dateutil import parser as date_parser
 from atproto import Client, models
 from ..config import BlueskyConfig
 from .base import BasePlatform, Post, DeletionResult
@@ -86,10 +87,15 @@ class BlueskyPlatform(BasePlatform):
                     if not hasattr(post_record, 'created_at'):
                         continue
                     
-                    # Parse the created date
-                    created_at = datetime.fromisoformat(
-                        post_record.created_at.replace('Z', '+00:00')
-                    )
+                    # Parse the created date with proper timezone handling
+                    try:
+                        created_at = date_parser.isoparse(post_record.created_at)
+                        # Convert to naive datetime for comparison (assumes UTC)
+                        if created_at.tzinfo is not None:
+                            created_at = created_at.replace(tzinfo=None)
+                    except (ValueError, AttributeError) as e:
+                        print(f"Warning: Failed to parse date for post {feed_item.post.uri}: {e}")
+                        continue
                     
                     # Filter by date range
                     if created_at < start_date or created_at > end_date:

@@ -1,7 +1,10 @@
 """Base platform interface for social media platforms."""
 
+import json
+import os
 from abc import ABC, abstractmethod
 from datetime import datetime
+from pathlib import Path
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
@@ -132,10 +135,6 @@ class BasePlatform(ABC):
         Returns:
             Path to the archived file, or None if archiving failed
         """
-        import os
-        import json
-        from pathlib import Path
-        
         try:
             # Create archive directory if it doesn't exist
             Path(archive_path).mkdir(parents=True, exist_ok=True)

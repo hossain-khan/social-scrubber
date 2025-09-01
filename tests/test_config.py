@@ -76,13 +76,13 @@ class TestConfig:
         )
         assert config.is_configured
     
-    def test_config_from_env(self):
+    def test_config_from_env(self, monkeypatch):
         """Test Config.from_env() method."""
-        # Set some environment variables
-        os.environ["BLUESKY_HANDLE"] = "test.bsky.social"
-        os.environ["BLUESKY_PASSWORD"] = "test-password"
-        os.environ["DRY_RUN"] = "false"
-        os.environ["MAX_POSTS_PER_SCRUB"] = "25"
+        # Set some environment variables using monkeypatch for automatic cleanup
+        monkeypatch.setenv("BLUESKY_HANDLE", "test.bsky.social")
+        monkeypatch.setenv("BLUESKY_PASSWORD", "test-password")
+        monkeypatch.setenv("DRY_RUN", "false")
+        monkeypatch.setenv("MAX_POSTS_PER_SCRUB", "25")
         
         config = Config.from_env()
         
@@ -91,8 +91,4 @@ class TestConfig:
         assert config.scrub.dry_run == False
         assert config.scrub.max_posts_per_scrub == 25
         
-        # Clean up
-        del os.environ["BLUESKY_HANDLE"]
-        del os.environ["BLUESKY_PASSWORD"] 
-        del os.environ["DRY_RUN"]
-        del os.environ["MAX_POSTS_PER_SCRUB"]
+        # No manual cleanup needed - monkeypatch handles it automatically

@@ -1,8 +1,10 @@
 """Mastodon platform implementation."""
 
 import asyncio
+import re
 from datetime import datetime
 from typing import List, Optional
+from dateutil import parser as date_parser
 from mastodon import Mastodon
 from ..config import MastodonConfig
 from .base import BasePlatform, Post, DeletionResult
@@ -88,11 +90,23 @@ class MastodonPlatform(BasePlatform):
                     break
                 
                 for status in statuses:
-                    # Parse the created date
-                    created_at = status['created_at']
-                    if hasattr(created_at, 'replace'):
-                        # Convert timezone-aware datetime to naive datetime for comparison
-                        created_at = created_at.replace(tzinfo=None)
+                    # Parse the created date with proper timezone handling
+                    try:
+                        created_at = status['created_at']
+                        if isinstance(created_at, str):
+                            # Parse string datetime
+                            created_at = date_parser.isoparse(created_at)
+                        
+                        # Convert timezone-aware datetime to UTC, then make naive for comparison
+                        if hasattr(created_at, 'tzinfo') and created_at.tzinfo is not None:
+                            created_at = created_at.utctimetuple()
+                            created_at = datetime(*created_at[:6])
+                        elif hasattr(created_at, 'replace'):
+                            # If it's timezone-aware, convert to naive UTC
+                            created_at = created_at.replace(tzinfo=None)
+                    except (ValueError, AttributeError) as e:
+                        print(f"Warning: Failed to parse date for status {status['id']}: {e}")
+                        continue
                     
                     # Filter by date range
                     if created_at < start_date or created_at > end_date:
@@ -102,7 +116,6 @@ class MastodonPlatform(BasePlatform):
                         continue
                     
                     # Extract post content (remove HTML tags)
-                    import re
                     content = re.sub(r'<[^>]+>', '', status['content'])
                     
                     # Create Post object
