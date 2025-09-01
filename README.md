@@ -14,9 +14,11 @@
 ## Getting Started
 
 1. Clone the repository
-2. Install requirements: `pip install -r requirements.txt`
-3. Run the tool: `python socialcleaner.py`
-4. Follow the prompts to authenticate and select deletion options
+2. Create Python virtual environment: `python -m venv .venv` and `source .venv/bin/activate`
+3. Install requirements: `pip install -r requirements.txt`
+4. Copy environment template and update: `cp .env.example .env`
+5. Run the tool: `python social-scrubber`
+6. Follow the prompts to authenticate and select deletion options
 
 ## Configuration
 
