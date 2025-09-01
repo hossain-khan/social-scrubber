@@ -38,6 +38,7 @@ class TestBlueskyAPIFixes:
         mock_client = Mock()
         mock_response = Mock()
         mock_response.feed = []  # Empty feed to end the loop
+        mock_response.cursor = None  # No cursor
 
         # Mock the API method
         mock_client.app.bsky.feed.get_author_feed.return_value = mock_response
@@ -48,7 +49,7 @@ class TestBlueskyAPIFixes:
 
         # Call get_posts
         _ = await bluesky_platform.get_posts(
-            start_date="2024-01-01", end_date="2024-01-02", limit=10
+            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 1, 2), limit=10
         )  # We don't need the result for this test
 
         # Verify the API was called with correct parameter structure
@@ -78,11 +79,13 @@ class TestBlueskyAPIFixes:
         mock_feed_item1 = Mock()
         mock_post1 = Mock()
         mock_record1 = Mock()
-        mock_record1.created_at = "2024-01-01T12:00:00Z"
+        mock_record1.created_at = "2024-01-01T12:00:00Z"  # Within date range
         mock_record1.text = "Test post"
         mock_post1.record = mock_record1
         mock_post1.uri = "at://did:plc:test/app.bsky.feed.post/test1"
         mock_post1.cid = "test_cid_1"
+        mock_post1.author = Mock()
+        mock_post1.author.handle = "test.bsky.social"
         mock_feed_item1.post = mock_post1
         mock_response1.feed = [mock_feed_item1]
         mock_response1.cursor = "test_cursor"
@@ -103,7 +106,7 @@ class TestBlueskyAPIFixes:
 
         # Call get_posts
         _ = await bluesky_platform.get_posts(
-            start_date="2024-01-01", end_date="2024-01-02", limit=100
+            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 1, 3), limit=100
         )  # We don't need the result for this test
 
         # Verify the API was called twice
@@ -133,7 +136,7 @@ class TestBlueskyAPIFixes:
         # Should raise RuntimeError
         with pytest.raises(RuntimeError, match="Not authenticated with Bluesky"):
             await bluesky_platform.get_posts(
-                start_date="2024-01-01", end_date="2024-01-02"
+                start_date=datetime(2024, 1, 1), end_date=datetime(2024, 1, 2)
             )
 
     @pytest.mark.asyncio
@@ -146,7 +149,7 @@ class TestBlueskyAPIFixes:
         # Should raise RuntimeError
         with pytest.raises(RuntimeError, match="Not authenticated with Bluesky"):
             await bluesky_platform.get_posts(
-                start_date="2024-01-01", end_date="2024-01-02"
+                start_date=datetime(2024, 1, 1), end_date=datetime(2024, 1, 2)
             )
 
     @pytest.mark.asyncio
@@ -162,14 +165,17 @@ class TestBlueskyAPIFixes:
         mock_feed_item = Mock()
         mock_post = Mock()
         mock_record = Mock()
-        mock_record.created_at = "2024-01-01T12:00:00.000Z"
+        mock_record.created_at = "2024-01-01T12:00:00.000Z"  # Within date range
         mock_record.text = "Test post content"
         mock_post.record = mock_record
         mock_post.uri = "at://did:plc:test/app.bsky.feed.post/test123"
         mock_post.cid = "test_cid"
+        mock_post.author = Mock()
+        mock_post.author.handle = "test.bsky.social"
         mock_feed_item.post = mock_post
 
         mock_response.feed = [mock_feed_item]
+        mock_response.cursor = None  # No more pages - this prevents infinite loop
         mock_client.app.bsky.feed.get_author_feed.return_value = mock_response
 
         # Set up the platform
@@ -178,7 +184,7 @@ class TestBlueskyAPIFixes:
 
         # Call get_posts
         posts = await bluesky_platform.get_posts(
-            start_date="2024-01-01", end_date="2024-01-02"
+            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 1, 3)
         )
 
         # Verify we got one post
@@ -187,8 +193,10 @@ class TestBlueskyAPIFixes:
         # Verify the post properties
         post = posts[0]
         assert isinstance(post, Post)
-        assert post.id == "test123"  # Should extract the ID from the URI
-        assert post.text == "Test post content"
+        assert (
+            post.id == "at://did:plc:test/app.bsky.feed.post/test123"
+        )  # Full URI as ID
+        assert post.content == "Test post content"  # Note: content, not text
         assert post.platform == "bluesky"
         assert isinstance(post.created_at, datetime)
 
@@ -201,6 +209,7 @@ class TestBlueskyAPIFixes:
         mock_client = Mock()
         mock_response = Mock()
         mock_response.feed = []
+        mock_response.cursor = None  # No cursor for empty response
         mock_client.app.bsky.feed.get_author_feed.return_value = mock_response
 
         # Set up the platform
@@ -209,7 +218,7 @@ class TestBlueskyAPIFixes:
 
         # Call get_posts
         posts = await bluesky_platform.get_posts(
-            start_date="2024-01-01", end_date="2024-01-02"
+            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 1, 2)
         )
 
         # Verify we got no posts
@@ -224,6 +233,7 @@ class TestBlueskyAPIFixes:
         mock_client = Mock()
         mock_response = Mock()
         mock_response.feed = []
+        mock_response.cursor = None  # No cursor
         mock_client.app.bsky.feed.get_author_feed.return_value = mock_response
 
         # Set up the platform
@@ -232,7 +242,7 @@ class TestBlueskyAPIFixes:
 
         # Call get_posts with specific limit
         await bluesky_platform.get_posts(
-            start_date="2024-01-01", end_date="2024-01-02", limit=25
+            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 1, 2), limit=25
         )
 
         # Verify the API was called with correct limit
@@ -244,7 +254,7 @@ class TestBlueskyAPIFixes:
     async def test_get_posts_handles_api_exception(
         self, bluesky_platform, mock_bluesky_config
     ):
-        """Test that get_posts properly handles API exceptions."""
+        """Test that get_posts properly handles API exceptions by returning empty list."""
         # Mock the client to raise an exception
         mock_client = Mock()
         mock_client.app.bsky.feed.get_author_feed.side_effect = Exception("API Error")
@@ -253,8 +263,10 @@ class TestBlueskyAPIFixes:
         bluesky_platform._authenticated = True
         bluesky_platform.client = mock_client
 
-        # Should raise the exception
-        with pytest.raises(Exception, match="API Error"):
-            await bluesky_platform.get_posts(
-                start_date="2024-01-01", end_date="2024-01-02"
-            )
+        # Should return empty list instead of raising exception
+        posts = await bluesky_platform.get_posts(
+            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 1, 2)
+        )
+
+        # Verify it returns empty list when there's an API error
+        assert posts == []

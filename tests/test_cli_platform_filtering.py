@@ -27,7 +27,7 @@ def mock_config():
     config.scrub.get_end_datetime.return_value = Mock()
     config.scrub.max_posts_per_scrub = 100
     config.scrub.dry_run = True
-    
+
     # Mock log level as string
     config.log_level = "INFO"
 
@@ -48,14 +48,17 @@ def mock_platforms():
 @pytest.fixture
 def scrubber(mock_config, mock_platforms):
     """Create a SocialScrubber instance with mocked dependencies."""
-    with patch("social_scrubber.cli.Config") as MockConfig, \
-         patch("social_scrubber.cli.setup_logging") as mock_setup_logging:
+    with patch("social_scrubber.cli.Config") as MockConfig, patch(
+        "social_scrubber.cli.setup_logging"
+    ):  # noqa: F841 (we don't use mock_setup_logging but need to patch it)
         MockConfig.from_env.return_value = mock_config
-        
+
         scrubber = SocialScrubber()
         scrubber.platforms = mock_platforms
-        
+
         return scrubber
+
+
 class TestPlatformFiltering:
     """Test cases for platform filtering in CLI."""
 
