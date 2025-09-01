@@ -58,8 +58,7 @@ Before committing any code changes, you MUST run the pre-commit quality checks:
 3. **Type check with mypy**: Run `mypy src/ tests/` to catch type annotation issues
 4. **Lint with flake8**: Run `flake8 src/ tests/ *.py` to check code quality and style including root directory files
 5. **Run tests**: Run `python -m pytest tests/` to ensure all unit tests pass
-6. **Validate JSON files**: Run `python -m json.tool sync_state.json > /dev/null` to validate JSON syntax
-7. **Update CHANGELOG.md**: Document any new features, bug fixes, or breaking changes in the changelog
+6. **Update CHANGELOG.md**: Document any new features, bug fixes, or breaking changes in the changelog
 
 ## Changelog Management
 
