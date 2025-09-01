@@ -30,8 +30,8 @@ echo "✅ Type checking passed"
 
 echo
 echo "4️⃣ Linting (flake8)..."
-flake8 social_scrubber/ tests/ examples/ --count --select=E9,F63,F7,F82 --show-source --statistics
-echo "✅ Critical linting passed"
+flake8 social_scrubber/ tests/ examples/ --count --statistics
+echo "✅ Linting passed"
 
 echo
 echo "5️⃣ Security Check (bandit)..."
