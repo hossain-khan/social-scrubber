@@ -141,7 +141,11 @@ class BasePlatform(ABC):
 
             # Create filename with timestamp and post ID
             timestamp = post.created_at.strftime("%Y%m%d_%H%M%S")
-            filename = f"{self.name}_{timestamp}_{post.id}.json"
+            # Sanitize post ID for filename use (replace invalid chars with underscores)
+            safe_post_id = "".join(
+                c if c.isalnum() or c in ".-_" else "_" for c in post.id
+            )
+            filename = f"{self.name}_{timestamp}_{safe_post_id}.json"
             filepath = Path(archive_path) / filename
 
             # Create archive data
