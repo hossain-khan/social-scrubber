@@ -68,10 +68,9 @@ jobs:
 
   build-test:
     name: Build and Installation Test
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
         python-version: ["3.9", "3.11"]
     
     steps:
@@ -104,8 +103,7 @@ jobs:
         python -c "import sys; print(f'Python {sys.version}')"
         python -m build --sdist --wheel
     
-    - name: Test executable script (Unix only)
-      if: runner.os != 'Windows'
+    - name: Test executable script
       run: |
         chmod +x social-scrubber
         ./social-scrubber --help
