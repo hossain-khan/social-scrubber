@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Modern Python project configuration** (`pyproject.toml`)
 - **Automated dependency updates** workflow
 - **Release automation** workflow for PyPI publishing
+- **New test file** `test_utils.py` with comprehensive tests for utility functions
+- **New tests for BasePlatform** including `bulk_delete_posts` and `_archive_post` methods
+- **New tests for TwitterConfig** validation
+- **New tests for ScrubConfig** edge cases (invalid dates, start_date='today')
 - Twitter/X platform integration (planned)
 - Support for filtering posts by keywords or post IDs
 - Support for batch operations with progress bars
@@ -24,12 +28,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Enhanced import organization** - moved all imports to top of files
 - **Better test environment handling** using pytest monkeypatch fixtures
 - **Enhanced error handling** for datetime parsing failures
+- **Reduced test code duplication** in CLI platform filtering tests using shared context managers
+- **Improved test comments** to accurately describe what each test validates
 
 ### Fixed
 - **Import statement organization** following Python conventions
 - **Timezone conversion issues** in Bluesky and Mastodon platforms
 - **Test environment variable cleanup** using proper pytest fixtures
 - **Datetime parsing robustness** with better error handling
+- **Removed misleading noqa comments** in test files
 
 ## [0.1.0] - 2025-08-31
 
