@@ -5,25 +5,22 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from social_scrubber.config import BlueskyConfig
 from social_scrubber.platforms.base import Post
 from social_scrubber.platforms.bluesky import BlueskyPlatform
 
-
-@pytest.fixture
-def mock_bluesky_config():
-    """Create a mock Bluesky configuration."""
-    config = Mock(spec=BlueskyConfig)
-    config.handle = "test.bsky.social"
-    config.password = "test_password"
-    config.is_configured = True
-    return config
+# Use shared mock_bluesky_config fixture from conftest.py
 
 
 @pytest.fixture
 def bluesky_platform(mock_bluesky_config):
     """Create a BlueskyPlatform instance with mocked config."""
     return BlueskyPlatform(mock_bluesky_config)
+
+
+@pytest.fixture
+def bluesky_platform_unconfigured(mock_bluesky_config_unconfigured):
+    """Create an unconfigured BlueskyPlatform instance."""
+    return BlueskyPlatform(mock_bluesky_config_unconfigured)
 
 
 class TestBlueskyAPIFixes:
@@ -270,3 +267,102 @@ class TestBlueskyAPIFixes:
 
         # Verify it returns empty list when there's an API error
         assert posts == []
+
+
+class TestBlueskyAuthentication:
+    """Test cases for Bluesky authentication."""
+
+    @pytest.mark.asyncio
+    async def test_authenticate_success(self, bluesky_platform, mock_bluesky_config):
+        """Test successful authentication with Bluesky."""
+        with patch("social_scrubber.platforms.bluesky.Client") as MockClient:
+            mock_client = Mock()
+            mock_profile = Mock()
+            mock_profile.handle = "test.bsky.social"
+            mock_client.login.return_value = mock_profile
+            MockClient.return_value = mock_client
+
+            result = await bluesky_platform.authenticate()
+
+            assert result is True
+            assert bluesky_platform.is_authenticated is True
+            mock_client.login.assert_called_once_with(
+                "test.bsky.social", "test_password"
+            )
+
+    @pytest.mark.asyncio
+    async def test_authenticate_failure(self, bluesky_platform, mock_bluesky_config):
+        """Test failed authentication with Bluesky raises exception."""
+        with patch("social_scrubber.platforms.bluesky.Client") as MockClient:
+            mock_client = Mock()
+            mock_client.login.side_effect = Exception("Invalid credentials")
+            MockClient.return_value = mock_client
+
+            result = await bluesky_platform.authenticate()
+
+            assert result is False
+            assert bluesky_platform.is_authenticated is False
+
+    @pytest.mark.asyncio
+    async def test_authenticate_not_configured(self, bluesky_platform_unconfigured):
+        """Test authentication fails when not configured."""
+        result = await bluesky_platform_unconfigured.authenticate()
+
+        assert result is False
+        assert bluesky_platform_unconfigured.is_authenticated is False
+
+
+class TestBlueskyDeletePost:
+    """Test cases for Bluesky post deletion."""
+
+    @pytest.mark.asyncio
+    async def test_delete_post_success(self, bluesky_platform, mock_bluesky_config):
+        """Test successful post deletion."""
+        mock_client = Mock()
+        bluesky_platform._authenticated = True
+        bluesky_platform.client = mock_client
+
+        post_uri = "at://did:plc:test/app.bsky.feed.post/test123"
+        result = await bluesky_platform.delete_post(post_uri)
+
+        assert result.success is True
+        assert result.post_id == post_uri
+        mock_client.app.bsky.feed.post.delete.assert_called_once_with("test123")
+
+    @pytest.mark.asyncio
+    async def test_delete_post_failure(self, bluesky_platform, mock_bluesky_config):
+        """Test post deletion failure due to API error."""
+        mock_client = Mock()
+        mock_client.app.bsky.feed.post.delete.side_effect = Exception("API error")
+        bluesky_platform._authenticated = True
+        bluesky_platform.client = mock_client
+
+        post_uri = "at://did:plc:test/app.bsky.feed.post/test123"
+        result = await bluesky_platform.delete_post(post_uri)
+
+        assert result.success is False
+        assert "API error" in result.error
+
+    @pytest.mark.asyncio
+    async def test_delete_post_not_authenticated(self, bluesky_platform):
+        """Test deletion fails when not authenticated."""
+        bluesky_platform._authenticated = False
+        bluesky_platform.client = None
+
+        result = await bluesky_platform.delete_post("test_post_id")
+
+        assert result.success is False
+        assert "Not authenticated" in result.error
+
+    @pytest.mark.asyncio
+    async def test_delete_post_invalid_uri(self, bluesky_platform):
+        """Test deletion fails with invalid post URI format."""
+        mock_client = Mock()
+        bluesky_platform._authenticated = True
+        bluesky_platform.client = mock_client
+
+        # Single part URI is invalid
+        result = await bluesky_platform.delete_post("invalid")
+
+        assert result.success is False
+        assert "Invalid post URI format" in result.error
