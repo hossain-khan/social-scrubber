@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **New tests for BasePlatform** including `bulk_delete_posts` and `_archive_post` methods
 - **New tests for TwitterConfig** validation
 - **New tests for ScrubConfig** edge cases (invalid dates, start_date='today')
+- **Shared test fixtures** in `conftest.py` for consistent test setup across files
+- **New test file** `test_mastodon.py` with comprehensive tests for Mastodon platform
+- **New test file** `test_twitter.py` with tests for Twitter platform (WIP implementation)
+- **New test file** `test_cli_methods.py` with tests for SocialScrubber CLI methods
+- **New tests for Bluesky** authenticate and delete_post methods
 - Twitter/X platform integration (planned)
 - Support for filtering posts by keywords or post IDs
 - Support for batch operations with progress bars
@@ -30,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Enhanced error handling** for datetime parsing failures
 - **Reduced test code duplication** in CLI platform filtering tests using shared context managers
 - **Improved test comments** to accurately describe what each test validates
+- **Refactored test fixtures** - moved shared fixtures to conftest.py to reduce duplication
 
 ### Fixed
 - **Import statement organization** following Python conventions
