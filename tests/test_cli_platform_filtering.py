@@ -1,6 +1,7 @@
 """Tests for CLI platform filtering functionality."""
 
-from unittest.mock import AsyncMock, Mock, patch
+from contextlib import contextmanager
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -50,7 +51,7 @@ def scrubber(mock_config, mock_platforms):
     """Create a SocialScrubber instance with mocked dependencies."""
     with patch("social_scrubber.cli.Config") as MockConfig, patch(
         "social_scrubber.cli.setup_logging"
-    ):  # noqa: F841 (we don't use mock_setup_logging but need to patch it)
+    ):
         MockConfig.from_env.return_value = mock_config
 
         scrubber = SocialScrubber()
@@ -59,134 +60,119 @@ def scrubber(mock_config, mock_platforms):
         return scrubber
 
 
+@contextmanager
+def patch_cli_ui_components():
+    """Context manager to patch common CLI UI components used in run_interactive.
+
+    Patches print_banner, console, print_platform_status, confirm_action,
+    format_date_range, display_posts_table, and display_deletion_results.
+
+    Yields:
+        tuple: (mock_console, mock_confirm) for assertion in tests
+    """
+    with (
+        patch("social_scrubber.cli.print_banner"),
+        patch("social_scrubber.cli.console") as mock_console,
+        patch("social_scrubber.cli.print_platform_status"),
+        patch("social_scrubber.cli.confirm_action") as mock_confirm,
+        patch("social_scrubber.cli.format_date_range"),
+        patch("social_scrubber.cli.display_posts_table"),
+        patch("social_scrubber.cli.display_deletion_results"),
+    ):
+        yield mock_console, mock_confirm
+
+
+@contextmanager
+def patch_cli_error_scenario():
+    """Context manager for patching CLI components in error scenarios.
+
+    Used for tests that verify error messages when platforms are invalid
+    or not configured.
+
+    Yields:
+        Mock: mock_console for assertion in tests
+    """
+    with (
+        patch("social_scrubber.cli.print_banner"),
+        patch("social_scrubber.cli.console") as mock_console,
+        patch("social_scrubber.cli.print_platform_status"),
+    ):
+        yield mock_console
+
+
 class TestPlatformFiltering:
     """Test cases for platform filtering in CLI."""
 
     @pytest.mark.asyncio
     async def test_run_interactive_no_platform_filter(self, scrubber, mock_config):
         """Test that all configured platforms are processed when no filter is applied."""
-        # Mock the methods that run_interactive calls
-        with patch.object(
-            scrubber, "authenticate_platforms"
-        ) as mock_auth, patch.object(
-            scrubber, "get_posts_from_platforms"
-        ) as mock_get_posts, patch.object(
-            scrubber, "delete_posts_from_platform"
-        ), patch(  # noqa: F841 (we don't use mock_delete but need to patch it)
-            "social_scrubber.cli.print_banner"
-        ), patch(
-            "social_scrubber.cli.console"
-        ), patch(  # noqa: F841 (we don't use mock_console but need to patch it)
-            "social_scrubber.cli.print_platform_status"
-        ), patch(
-            "social_scrubber.cli.confirm_action"
-        ) as mock_confirm, patch(
-            "social_scrubber.cli.format_date_range"
-        ), patch(
-            "social_scrubber.cli.display_posts_table"
-        ), patch(
-            "social_scrubber.cli.display_deletion_results"
+        with (
+            patch.object(scrubber, "authenticate_platforms") as mock_auth,
+            patch.object(scrubber, "get_posts_from_platforms") as mock_get_posts,
+            patch.object(scrubber, "delete_posts_from_platform"),
         ):
+            with patch_cli_ui_components() as (_, mock_confirm):
+                mock_auth.return_value = {
+                    "bluesky": True,
+                    "mastodon": True,
+                    "twitter": True,
+                }
+                mock_get_posts.return_value = {
+                    "bluesky": [],
+                    "mastodon": [],
+                    "twitter": [],
+                }
+                mock_confirm.return_value = True
 
-            # Setup mocks
-            mock_auth.return_value = {
-                "bluesky": True,
-                "mastodon": True,
-                "twitter": True,
-            }
-            mock_get_posts.return_value = {"bluesky": [], "mastodon": [], "twitter": []}
-            mock_confirm.return_value = True
+                await scrubber.run_interactive(None)
 
-            # Run without platform filter
-            await scrubber.run_interactive(None)
-
-            # Verify all platforms were passed to authenticate_platforms
-            mock_auth.assert_called_once_with(["bluesky", "mastodon", "twitter"])
+                # Verify all platforms were passed to authenticate_platforms
+                mock_auth.assert_called_once_with(["bluesky", "mastodon", "twitter"])
 
     @pytest.mark.asyncio
     async def test_run_interactive_with_single_platform_filter(
         self, scrubber, mock_config
     ):
         """Test that only selected platform is processed when filter is applied."""
-        with patch.object(
-            scrubber, "authenticate_platforms"
-        ) as mock_auth, patch.object(
-            scrubber, "get_posts_from_platforms"
-        ) as mock_get_posts, patch.object(
-            scrubber, "delete_posts_from_platform"
-        ), patch(  # noqa: F841 (we don't use mock_delete but need to patch it)
-            "social_scrubber.cli.print_banner"
-        ), patch(
-            "social_scrubber.cli.console"
-        ), patch(  # noqa: F841 (we don't use mock_console but need to patch it)
-            "social_scrubber.cli.print_platform_status"
-        ), patch(
-            "social_scrubber.cli.confirm_action"
-        ) as mock_confirm, patch(
-            "social_scrubber.cli.format_date_range"
-        ), patch(
-            "social_scrubber.cli.display_posts_table"
-        ), patch(
-            "social_scrubber.cli.display_deletion_results"
+        with (
+            patch.object(scrubber, "authenticate_platforms") as mock_auth,
+            patch.object(scrubber, "get_posts_from_platforms") as mock_get_posts,
+            patch.object(scrubber, "delete_posts_from_platform"),
         ):
+            with patch_cli_ui_components() as (_, mock_confirm):
+                mock_auth.return_value = {"bluesky": True}
+                mock_get_posts.return_value = {"bluesky": []}
+                mock_confirm.return_value = True
 
-            # Setup mocks
-            mock_auth.return_value = {"bluesky": True}
-            mock_get_posts.return_value = {"bluesky": []}
-            mock_confirm.return_value = True
+                await scrubber.run_interactive(["bluesky"])
 
-            # Run with single platform filter
-            await scrubber.run_interactive(["bluesky"])
-
-            # Verify only selected platform was passed to authenticate_platforms
-            mock_auth.assert_called_once_with(["bluesky"])
+                # Verify only selected platform was passed to authenticate_platforms
+                mock_auth.assert_called_once_with(["bluesky"])
 
     @pytest.mark.asyncio
     async def test_run_interactive_with_multiple_platform_filter(
         self, scrubber, mock_config
     ):
         """Test that multiple selected platforms are processed when filter is applied."""
-        with patch.object(
-            scrubber, "authenticate_platforms"
-        ) as mock_auth, patch.object(
-            scrubber, "get_posts_from_platforms"
-        ) as mock_get_posts, patch.object(
-            scrubber, "delete_posts_from_platform"
-        ), patch(  # noqa: F841 (we don't use mock_delete but need to patch it)
-            "social_scrubber.cli.print_banner"
-        ), patch(
-            "social_scrubber.cli.console"
-        ), patch(  # noqa: F841 (we don't use mock_console but need to patch it)
-            "social_scrubber.cli.print_platform_status"
-        ), patch(
-            "social_scrubber.cli.confirm_action"
-        ) as mock_confirm, patch(
-            "social_scrubber.cli.format_date_range"
-        ), patch(
-            "social_scrubber.cli.display_posts_table"
-        ), patch(
-            "social_scrubber.cli.display_deletion_results"
+        with (
+            patch.object(scrubber, "authenticate_platforms") as mock_auth,
+            patch.object(scrubber, "get_posts_from_platforms") as mock_get_posts,
+            patch.object(scrubber, "delete_posts_from_platform"),
         ):
+            with patch_cli_ui_components() as (_, mock_confirm):
+                mock_auth.return_value = {"bluesky": True, "mastodon": True}
+                mock_get_posts.return_value = {"bluesky": [], "mastodon": []}
+                mock_confirm.return_value = True
 
-            # Setup mocks
-            mock_auth.return_value = {"bluesky": True, "mastodon": True}
-            mock_get_posts.return_value = {"bluesky": [], "mastodon": []}
-            mock_confirm.return_value = True
+                await scrubber.run_interactive(["bluesky", "mastodon"])
 
-            # Run with multiple platform filter
-            await scrubber.run_interactive(["bluesky", "mastodon"])
-
-            # Verify only selected platforms were passed to authenticate_platforms
-            mock_auth.assert_called_once_with(["bluesky", "mastodon"])
+                # Verify only selected platforms were passed to authenticate_platforms
+                mock_auth.assert_called_once_with(["bluesky", "mastodon"])
 
     @pytest.mark.asyncio
     async def test_run_interactive_invalid_platform_filter(self, scrubber, mock_config):
-        """Test that invalid platform names are handled correctly."""
-        with patch("social_scrubber.cli.print_banner"), patch(
-            "social_scrubber.cli.console"
-        ) as mock_console, patch("social_scrubber.cli.print_platform_status"):
-
-            # Run with invalid platform filter
+        """Test that invalid platform names result in an error message."""
+        with patch_cli_error_scenario() as mock_console:
             await scrubber.run_interactive(["invalid_platform"])
 
             # Verify error message was printed
@@ -198,15 +184,11 @@ class TestPlatformFiltering:
     async def test_run_interactive_unconfigured_platform_filter(
         self, scrubber, mock_config
     ):
-        """Test that unconfigured platforms are handled correctly."""
+        """Test that filtering by an unconfigured platform results in an error message."""
         # Make twitter unconfigured
         mock_config.twitter.is_configured = False
 
-        with patch("social_scrubber.cli.print_banner"), patch(
-            "social_scrubber.cli.console"
-        ) as mock_console, patch("social_scrubber.cli.print_platform_status"):
-
-            # Run with unconfigured platform filter
+        with patch_cli_error_scenario() as mock_console:
             await scrubber.run_interactive(["twitter"])
 
             # Verify error message was printed
@@ -218,32 +200,24 @@ class TestPlatformFiltering:
     async def test_run_interactive_mixed_valid_invalid_platforms(
         self, scrubber, mock_config
     ):
-        """Test that mix of valid and invalid platforms is handled correctly."""
-        with patch("social_scrubber.cli.print_banner"), patch(
-            "social_scrubber.cli.console"
-        ) as mock_console, patch("social_scrubber.cli.print_platform_status"):
-
-            # Run with mix of valid and invalid platforms
+        """Test that mix of valid and invalid platforms results in an error message."""
+        with patch_cli_error_scenario() as mock_console:
             await scrubber.run_interactive(["bluesky", "invalid_platform"])
 
-            # Verify error message was printed
+            # Verify error message was printed for the invalid platform
             mock_console.print.assert_any_call(
                 "\n❌ Invalid or not configured platforms: invalid_platform"
             )
 
     @pytest.mark.asyncio
     async def test_run_interactive_no_configured_platforms(self, scrubber, mock_config):
-        """Test behavior when no platforms are configured."""
+        """Test that an error message is shown when no platforms are configured."""
         # Make all platforms unconfigured
         mock_config.bluesky.is_configured = False
         mock_config.mastodon.is_configured = False
         mock_config.twitter.is_configured = False
 
-        with patch("social_scrubber.cli.print_banner"), patch(
-            "social_scrubber.cli.console"
-        ) as mock_console, patch("social_scrubber.cli.print_platform_status"):
-
-            # Run without platform filter
+        with patch_cli_error_scenario() as mock_console:
             await scrubber.run_interactive(None)
 
             # Verify error message was printed

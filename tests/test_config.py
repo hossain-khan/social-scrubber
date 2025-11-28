@@ -1,11 +1,16 @@
 """Test configuration module."""
 
-import os
 from datetime import datetime, timedelta
 
 import pytest
 
-from social_scrubber.config import BlueskyConfig, Config, MastodonConfig, ScrubConfig
+from social_scrubber.config import (
+    BlueskyConfig,
+    Config,
+    MastodonConfig,
+    ScrubConfig,
+    TwitterConfig,
+)
 
 
 class TestConfig:
@@ -75,6 +80,58 @@ class TestConfig:
             api_base_url="https://mastodon.social", access_token="test-token"
         )
         assert config.is_configured
+
+    def test_twitter_config_validation(self):
+        """Test TwitterConfig validation."""
+        # Empty config should not be configured
+        config = TwitterConfig()
+        assert not config.is_configured
+
+        # Partial config (missing access_token) should not be configured
+        config = TwitterConfig(
+            api_key="test-api-key",
+            api_secret="test-api-secret",
+            access_token="",
+            access_token_secret="test-access-token-secret",
+        )
+        assert not config.is_configured
+
+        # Full config should be configured
+        config = TwitterConfig(
+            api_key="test-api-key",
+            api_secret="test-api-secret",
+            access_token="test-access-token",
+            access_token_secret="test-access-token-secret",
+        )
+        assert config.is_configured
+
+    def test_scrub_config_start_date_today(self):
+        """Test ScrubConfig start_date='today' parses to beginning of today."""
+        config = ScrubConfig(start_date="today")
+        start_date = config.get_start_datetime()
+
+        # Should be at the start of today (00:00:00)
+        today = datetime.now()
+        assert start_date.year == today.year
+        assert start_date.month == today.month
+        assert start_date.day == today.day
+        assert start_date.hour == 0
+        assert start_date.minute == 0
+        assert start_date.second == 0
+
+    def test_scrub_config_invalid_start_date_raises_error(self):
+        """Test that invalid start_date format raises ValueError."""
+        config = ScrubConfig(start_date="invalid-date")
+
+        with pytest.raises(ValueError, match="Invalid start date format"):
+            config.get_start_datetime()
+
+    def test_scrub_config_invalid_end_date_raises_error(self):
+        """Test that invalid end_date format raises ValueError."""
+        config = ScrubConfig(end_date="invalid-date")
+
+        with pytest.raises(ValueError, match="Invalid end date format"):
+            config.get_end_datetime()
 
     def test_config_from_env(self, monkeypatch):
         """Test Config.from_env() method."""
